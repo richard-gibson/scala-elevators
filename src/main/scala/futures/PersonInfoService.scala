@@ -22,22 +22,61 @@ case class NotFoundException(e: Exception) extends Exception(e)
 case class HouseInfo(address: Address, inhabitants: Seq[Person])
 
 class PersonInfoService extends PersonInfo {
-
   import PersonInfoModel._
 
-  override def personById(pin: Int): Future[Person] = ???
+  override def personById(pin: Int): Future[Person] =
+    Future((people filter (_.pin == pin)).head).recoverWith {
+      case e: NoSuchElementException =>
+        Future.failed[Person](NotFoundException(e))
+    }
 
-  override def addressById(id: Int): Future[Address] = ???
+  override def addressById(id: Int): Future[Address] =
+    Future((addresses filter (_.id == id)).head).recoverWith {
+      case e: NoSuchElementException =>
+        Future.failed[Address](NotFoundException(e))
+    }
 
-  override def addressesInTown(town: String): Future[Seq[Address]] = ???
+  override def addressesInTown(town: String): Future[Seq[Address]] =
+    Future(addresses filter (_.town == town))
 
-  override def peopleByAddressId(addressId: Int): Future[Seq[Person]] = ???
+  override def peopleByAddressId(addressId: Int): Future[Seq[Person]] =
+    Future(people filter (_.addressId == addressId))
 
-  override def livingWithPerson(person: Person): Future[HouseInfo] = ???
+  override def livingWithPerson(person: Person): Future[HouseInfo] =
+    for {
+      address <- addressById(person.addressId)
+      inhabitants <- peopleByAddressId(address.id)
+    } yield HouseInfo(address, inhabitants)
 
-  override def allHouseInfo: Future[Seq[HouseInfo]] = ???
+  override def allHouseInfo: Future[Seq[HouseInfo]] =
+    Future.sequence(people map livingWithPerson).map(_.distinct)
 
-  override def livingInTown(person: Person): Future[Seq[Person]] = ???
+  override def livingInTown(person: Person): Future[Seq[Person]] =
+    for {
+      address <- addressById(person.addressId)
+      matchingAddresses <- addressesInTown(address.town)
+      matchingAddressIds = matchingAddresses map (_.id)
+    } yield
+      people filter (person => matchingAddressIds contains person.addressId)
+}
+
+object PersonInfoService extends App {
+
+  val p = new PersonInfoService
+  println(Await.result(p.personById(3), 5 second))
+
+  val houseInfo =
+    Await.result(
+      p.personById(1).flatMap(person => p.livingWithPerson(person)),
+      5 second
+    )
+  println(houseInfo)
+
+  println(Await.result(p.allHouseInfo, 5 second))
+  println(
+    Await.result(p.livingInTown(Person(2, "lynda", "smyth", 1)), 5 second)
+  )
+
 }
 
 object PersonInfoModel {
