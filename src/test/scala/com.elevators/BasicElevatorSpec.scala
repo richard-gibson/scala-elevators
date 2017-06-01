@@ -54,14 +54,39 @@ class BasicElevatorSpec extends WordSpecLike {
   }
 
   "An elevator" when {
-//    val elevator = new Elevator(10)
+    val elevator = new Elevator(10)
     "called" should {
       "collect the calling passenger and deliver to requested floor" in {
-       pending
+        val elevator = new Elevator(10)
+        elevator.elevatorCall(1, Passenger(goingToFloor = 9))
+        elevator.getElevatorState.collectFrom should contain(
+          (1, Passenger(goingToFloor = 9))
+        )
+
+        elevator.move()
+        val elevatorState = elevator.getElevatorState
+        elevatorState.collectFrom should be(empty)
+        elevatorState.delivered should contain(Passenger(goingToFloor = 9))
       }
 
       "collect multiple calling passengers and deliver to requested floors" in {
-        pending
+        val elevator = new Elevator(10)
+        val passenger1 = Passenger(goingToFloor = 9)
+        val passenger2 = Passenger(goingToFloor = 2)
+        val passenger3 = Passenger(goingToFloor = 3)
+        elevator.elevatorCall(1, passenger1)
+        elevator.elevatorCall(7, passenger2)
+        elevator.elevatorCall(5, passenger3)
+        elevator.getElevatorState.collectFrom should contain((1, passenger1))
+        elevator.getElevatorState.collectFrom should contain((7, passenger2))
+        elevator.getElevatorState.collectFrom should contain((5, passenger3))
+
+        elevator.move()
+        val elevatorState = elevator.getElevatorState
+        elevatorState.collectFrom should be(empty)
+        elevatorState.delivered should contain(passenger1)
+        elevatorState.delivered should contain(passenger2)
+        elevatorState.delivered should contain(passenger3)
       }
 
     }
