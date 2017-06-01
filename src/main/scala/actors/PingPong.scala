@@ -1,12 +1,10 @@
 package actors
 
-
-import akka.actor.{ ActorSystem, Actor, ActorRef, Props, PoisonPill }
+import akka.actor.{ Actor, ActorRef, ActorSystem, PoisonPill, Props }
 import language.postfixOps
 import scala.concurrent.duration._
 
 object PingPong extends App {
-
 
   case object Ping
   case object Pong
@@ -46,7 +44,5 @@ object PingPong extends App {
   system.scheduler.scheduleOnce(500 millis) {
     ponger ! Ping
   }
-
-
 
 }
