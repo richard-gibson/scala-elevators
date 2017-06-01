@@ -28,7 +28,6 @@ trait ElevatorBehaviour {
 
   def passengerCollected(
     floorNo: Int,
-    passenger: Passenger,
     collectFrom: Set[(Int, Passenger)],
     takeTo: Set[Passenger]
   ): (Set[(Int, Passenger)], Set[Passenger]) = {
@@ -54,20 +53,10 @@ trait ElevatorBehaviour {
           leavePassengerOff(Passenger(currentFlr), takeTo, delivered)
         (collectFrom, t, d)
       case (true, false) =>
-        val (c, t) = passengerCollected(
-          currentFlr,
-          Passenger(currentFlr),
-          collectFrom,
-          takeTo
-        )
+        val (c, t) = passengerCollected(currentFlr, collectFrom, takeTo)
         (c, t, delivered)
       case (true, true) =>
-        val (c, t1) = passengerCollected(
-          currentFlr,
-          Passenger(currentFlr),
-          collectFrom,
-          takeTo
-        )
+        val (c, t1) = passengerCollected(currentFlr, collectFrom, takeTo)
         val (t2, d) = leavePassengerOff(Passenger(currentFlr), t1, delivered)
         (c, t2, d)
     }
