@@ -31,6 +31,16 @@ class ElevatorActorSpec
       implicit val ec =
         ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
+      "return correct elevator state when requested" in {
+        (elevator ? ElevatorStateRequest)
+          .mapTo[ElevatorState]
+          .map(elevatorState => {
+            elevatorState.collectFrom shouldBe empty
+            elevatorState.takeTo shouldBe empty
+            elevatorState.delivered shouldBe empty
+          })
+      }
+
       "collect the calling passenger and deliver to requested floor" in {
         elevator ! PassengerToCollect(1, Passenger(goingToFloor = 9))
         waitTillIdle(1 second, listener)
