@@ -1,6 +1,5 @@
 package com.elevators
 
-import akka.actor.Actor.Receive
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 
 class ElevatorActor(floors: Int, notificationListener: ActorRef)
@@ -8,30 +7,20 @@ class ElevatorActor(floors: Int, notificationListener: ActorRef)
     with ActorLogging
     with ElevatorBehaviour {
 
-  private var collectingPassengerFrom: Set[(Int, Passenger)] = Set.empty
-  private var takingPassengersTo: Set[Passenger] = Set.empty
-  private var passengersDelivered: List[Passenger] = List.empty
-  private var currentFloor: Int = 0
-  private var isMoving: Boolean = false
+  override def receive(): Receive = idleReceive(List.empty, 0)
 
-  override def receive: Receive = {
-    case ElevatorStateRequest =>
-      log.info("Elevator state requested")
-      sender ! ElevatorState(
-        currentFloor,
-        collectingPassengerFrom,
-        takingPassengersTo,
-        passengersDelivered
-      )
-
+  def movingReceive(collectingPassengerFrom: Set[(Int, Passenger)],
+                    takingPassengersTo: Set[Passenger],
+                    passengersDelivered: List[Passenger],
+                    currentFloor: Int): Receive = {
     case PassengerToCollect(floor, passenger) =>
-      collectingPassengerFrom =
-        collectPassengerFrom(floor, passenger, collectingPassengerFrom)
-      if (!isMoving) {
-        isMoving = true
-        self ! Move
-        notificationListener ! Moving
-      }
+      context become movingReceive(
+        collectPassengerFrom(floor, passenger, collectingPassengerFrom),
+        takingPassengersTo,
+        passengersDelivered,
+        currentFloor
+      )
+      self ! Move
 
     case Move =>
       val (collectFrom, takeTo, delivered) =
@@ -42,30 +31,59 @@ class ElevatorActor(floors: Int, notificationListener: ActorRef)
           passengersDelivered
         )
 
-      val nextFloor: Option[Int] =
-        (takeTo.headOption map (_.goingToFloor))
-          .orElse(collectFrom.headOption map (_._1))
+      val nextFloor: Option[Int] = (takeTo.headOption map (_.goingToFloor))
+        .orElse(collectFrom.headOption map (_._1))
       val nextFloorToVisit = getNextFloor(currentFloor, nextFloor)
 
-      collectingPassengerFrom = collectFrom
-      takingPassengersTo = takeTo
-      passengersDelivered = delivered
-
       if (nextFloor.isDefined) {
-        currentFloor = nextFloorToVisit
+        context become movingReceive(
+          collectFrom,
+          takeTo,
+          delivered,
+          nextFloorToVisit
+        )
         self ! Move
       } else {
-        log.info(
-          s"${ElevatorState(currentFloor, collectingPassengerFrom, takingPassengersTo, passengersDelivered)}"
-        )
-        isMoving = false
+        context become idleReceive(delivered, currentFloor)
         notificationListener ! Idle
       }
+
+    case ElevatorStateRequest =>
+      log.info("Elevator state requested")
+      sender
+      ElevatorState(
+        currentFloor,
+        collectingPassengerFrom,
+        takingPassengersTo,
+        passengersDelivered
+      )
+
   }
 
+  def idleReceive(passengersDelivered: List[Passenger],
+                  currentFloor: Int): Receive = {
+    case PassengerToCollect(floor, passenger) =>
+      context become movingReceive(
+        collectPassengerFrom(floor, passenger, Set.empty),
+        Set.empty,
+        passengersDelivered,
+        currentFloor
+      )
+      self ! Move
+
+    case ElevatorStateRequest =>
+      log.info("Elevator state requested")
+      sender ! ElevatorState(
+        currentFloor,
+        Set.empty,
+        Set.empty,
+        passengersDelivered
+      )
+
+  }
 }
 
 object ElevatorActor {
-  def apply(floors: Int, notificationListener: ActorRef): Props =
+  def props(floors: Int, notificationListener: ActorRef): Props =
     Props(classOf[ElevatorActor], floors, notificationListener)
 }
