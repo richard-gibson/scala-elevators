@@ -1,6 +1,6 @@
 package actors
 
-import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
+import akka.actor.{ Actor, ActorSystem, PoisonPill, Props }
 import scala.concurrent.duration._
 
 sealed trait Emotion
@@ -28,19 +28,14 @@ class HotSwapActor extends Actor {
   }
 }
 
-
 class HotSwapper extends Actor {
   var countDown = 100
   val hotSwap = context actorOf Props[HotSwapActor]
 
   def receive = {
     case StartSwapping =>
-      (1 to 50) foreach (_ =>
-        hotSwap ! Happy
-      )
-      (1 to 50) foreach (_ =>
-        hotSwap ! Angry
-        )
+      (1 to 50) foreach (_ => hotSwap ! Happy)
+      (1 to 50) foreach (_ => hotSwap ! Angry)
     case s: String =>
       println(s"${self.path} received $s, count down $countDown")
 
@@ -52,10 +47,9 @@ class HotSwapper extends Actor {
       }
   }
 
-  def genMsg(i: Int): Emotion = {
+  def genMsg(i: Int): Emotion =
     if (i % 2 == 1) Happy
     else Angry
-  }
 }
 
 object HotSwapApp extends App {
@@ -64,12 +58,9 @@ object HotSwapApp extends App {
 
   val hotswapper = system.actorOf(Props[HotSwapper], "HotSwapper")
 
-
   import system.dispatcher
 
   system.scheduler.scheduleOnce(500 millis) {
     hotswapper ! StartSwapping
   }
 }
-
-
