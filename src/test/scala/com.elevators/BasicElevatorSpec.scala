@@ -30,8 +30,7 @@ class BasicElevatorSpec extends WordSpecLike {
       val origToBeCollected =
         Set((3, passenger), (5, Passenger(goingToFloor = 1)))
       val (newToBeCollected, newTakingTo) =
-        elevator
-          .passengerCollected(3, passenger, origToBeCollected, origTakingTo)
+        elevator.passengerCollected(3, origToBeCollected, origTakingTo)
 
       newTakingTo should contain(passenger)
       newToBeCollected shouldNot contain((3, passenger))
