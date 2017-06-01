@@ -1,11 +1,11 @@
 package com.elevators
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ ActorRef, ActorSystem }
 import akka.pattern.ask
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.testkit.{ ImplicitSender, TestKit, TestProbe }
 import akka.util.Timeout
-import org.scalatest.Matchers._
 import org.scalatest._
+import Matchers._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -33,7 +33,18 @@ class ElevatorControllerSpec
         elevatorController ! PassengerToCollect(1, Passenger(goingToFloor = 9))
         waitTillIdle(1 second, listener)
 
-        pending
+        val elevatorStates: Future[Seq[ElevatorState]] =
+          (elevatorController ? ElevatorStateRequest).mapTo[Seq[ElevatorState]]
+
+        elevatorStates.map { states =>
+          {
+            states.flatMap(_.delivered) should contain(
+              Passenger(goingToFloor = 9)
+            )
+            states.flatMap(_.collectFrom) should be(empty)
+          }
+
+        }
       }
     }
   }
@@ -45,7 +56,5 @@ class ElevatorControllerSpec
     }
     listener.fishForMessage(1 second)(idleReceived)
   }
-
-
 
 }
