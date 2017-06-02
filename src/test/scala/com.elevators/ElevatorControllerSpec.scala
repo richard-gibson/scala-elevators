@@ -58,6 +58,7 @@ class ElevatorControllerSpec
 
     "when receives a kill switch message" should {
       "restart kill all elevators and start lifts as empty" in {
+        pending
         elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
         elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
         elevatorController ! KillElevators
