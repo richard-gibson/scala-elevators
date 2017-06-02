@@ -9,6 +9,7 @@ import Matchers._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.Try
 
 class ElevatorControllerSpec
     extends TestKit(ActorSystem("Test-Elevator-System"))
@@ -63,29 +64,32 @@ class ElevatorControllerSpec
         elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
         elevatorController ! KillElevators
 
-        waitForRestart(10 second, listener)
+        val receivedRestart = waitForRestart(10 second, listener)
         elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
         elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
-        waitTillIdle(1 second, listener)
-        Future.unit.map(_ => assert(true))
+        val receivedIdle = waitTillIdle(1 second, listener)
+        Future.unit.map(
+          _ =>
+            receivedRestart.isSuccess && receivedIdle.isSuccess shouldBe (true)
+        )
       }
     }
   }
 
-  def waitForRestart(timeout: Duration, listener: TestProbe): Any = {
+  def waitForRestart(timeout: Duration, listener: TestProbe): Try[Any] = {
     val restartingReceived: PartialFunction[Any, Boolean] = {
       case Restarting => true
       case _ => false
     }
-    listener.fishForMessage(timeout)(restartingReceived)
+    Try(listener.fishForMessage(timeout)(restartingReceived))
   }
 
-  def waitTillIdle(timeout: Duration, listener: TestProbe): Any = {
+  def waitTillIdle(timeout: Duration, listener: TestProbe): Try[Any] = {
     val idleReceived: PartialFunction[Any, Boolean] = {
       case Idle => true
       case _ => false
     }
-    listener.fishForMessage(timeout)(idleReceived)
+    Try(listener.fishForMessage(timeout)(idleReceived))
   }
 
 }
