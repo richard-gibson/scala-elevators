@@ -27,7 +27,7 @@ lazy val library =
     object Version {
       val scalaCheck  = "1.13.4"
       val scalaTest   = "3.0.1"
-      val akka        = "2.5.2"
+      val akka        = "2.5.1"
       val akkaHTTP    = "10.0.6"
     }
     val akkaActor  = "com.typesafe.akka"  %% "akka-actor"   % Version.akka
