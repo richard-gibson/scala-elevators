@@ -10,9 +10,11 @@ lazy val elevatorapp =
     .settings(
       libraryDependencies ++= Seq(
         library.akkaActor,
-        library.akkaTest    % Test,
-        library.scalaCheck  % Test,
-        library.scalaTest   % Test
+        library.akkaHTTP,
+        library.akkaTest      % Test,
+        library.akkaHTTPTest  % Test,
+        library.scalaCheck    % Test,
+        library.scalaTest     % Test
       )
     )
 
@@ -23,15 +25,19 @@ lazy val elevatorapp =
 lazy val library =
   new {
     object Version {
-      val scalaCheck = "1.13.4"
-      val scalaTest  = "3.0.1"
-      val akka  = "2.5.2"
+      val scalaCheck  = "1.13.4"
+      val scalaTest   = "3.0.1"
+      val akka        = "2.5.2"
+      val akkaHTTP    = "10.0.6"
     }
     val akkaActor  = "com.typesafe.akka"  %% "akka-actor"   % Version.akka
     val akkaTest   = "com.typesafe.akka"  %% "akka-testkit" % Version.akka
     val scalaCheck = "org.scalacheck"     %% "scalacheck"   % Version.scalaCheck
     val scalaTest  = "org.scalatest"      %% "scalatest"    % Version.scalaTest
-}
+    val akkaHTTP   = "com.typesafe.akka"  %% "akka-http"    % Version.akkaHTTP
+    val akkaHTTPTest = "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHTTP
+
+  }
 
 
 // *****************************************************************************
