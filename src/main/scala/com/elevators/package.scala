@@ -14,8 +14,10 @@ package object elevators {
   case object ElevatorStateRequest
   case object Move
   case object Idle
+  case object KillElevators
   case object Moving
+  case object Restarting
 
   case class PassengerToCollect(floor: Int, passenger: Passenger)
-
+  case class TooManyInElevatorException() extends Exception
 }
