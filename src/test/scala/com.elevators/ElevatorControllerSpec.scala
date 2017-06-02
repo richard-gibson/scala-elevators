@@ -23,12 +23,20 @@ class ElevatorControllerSpec
   }
 
   "An Elevator Controller" when {
-    "called" should {
-      val listener = TestProbe("notification-listener")
-      implicit val ec = system.dispatcher
-      val elevatorController: ActorRef =
-        system.actorOf(ElevatorController.props(3, 7, listener.ref, ec))
+    val listener = TestProbe("notification-listener")
+    implicit val ec = system.dispatcher
+    val elevatorController: ActorRef =
+      system.actorOf(
+        ElevatorController.props(
+          elevators = 1,
+          floors = 7,
+//          maxInElevator = 3,
+          notificationListener = listener.ref,
+          executionContext = ec
+        )
+      )
 
+    "called" should {
       "collect the calling passenger and deliver to requested floor" in {
         elevatorController ! PassengerToCollect(1, Passenger(goingToFloor = 9))
         waitTillIdle(1 second, listener)
@@ -47,6 +55,28 @@ class ElevatorControllerSpec
         }
       }
     }
+
+    "when receives a kill switch message" should {
+      "restart kill all elevators and start lifts as empty" in {
+        elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
+        elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
+        elevatorController ! KillElevators
+
+        waitForRestart(10 second, listener)
+        elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
+        elevatorController ! PassengerToCollect(0, Passenger(goingToFloor = 9))
+        waitTillIdle(1 second, listener)
+        Future.unit.map(_ => assert(true))
+      }
+    }
+  }
+
+  def waitForRestart(timeout: Duration, listener: TestProbe): Any = {
+    val restartingReceived: PartialFunction[Any, Boolean] = {
+      case Restarting => true
+      case _ => false
+    }
+    listener.fishForMessage(timeout)(restartingReceived)
   }
 
   def waitTillIdle(timeout: Duration, listener: TestProbe): Any = {
@@ -54,7 +84,7 @@ class ElevatorControllerSpec
       case Idle => true
       case _ => false
     }
-    listener.fishForMessage(1 second)(idleReceived)
+    listener.fishForMessage(timeout)(idleReceived)
   }
 
 }
