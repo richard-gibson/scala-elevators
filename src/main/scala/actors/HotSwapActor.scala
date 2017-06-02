@@ -13,13 +13,13 @@ case object StartSwapping
 
 class HotSwapActor extends Actor {
   def angry(happyCnt: Int, angryCnt: Int): Receive = {
-    case Angry => sender() ! "I am already angry!!"
+    case Angry => sender() ! s"I am already angry!! $angryCnt"
     case Happy => context become happy(happyCnt + 1, angryCnt)
   }
 
   def happy(happyCnt: Int, angryCnt: Int): Receive = {
-    case Happy => sender() ! "I am already happy :-)"
-    case Angry => context become angry(happyCnt, angryCnt)
+    case Happy => sender() ! s"I am already happy :-) $happyCnt"
+    case Angry => context become angry(happyCnt, angryCnt + 1)
   }
 
   def receive = {
@@ -34,8 +34,10 @@ class HotSwapper extends Actor {
 
   def receive = {
     case StartSwapping =>
-      (1 to 50) foreach (_ => hotSwap ! Happy)
-      (1 to 50) foreach (_ => hotSwap ! Angry)
+      (1 to 25) foreach (_ => hotSwap ! Happy)
+      (1 to 25) foreach (_ => hotSwap ! Angry)
+      (1 to 25) foreach (_ => hotSwap ! Happy)
+      (1 to 25) foreach (_ => hotSwap ! Angry)
     case s: String =>
       println(s"${self.path} received $s, count down $countDown")
 
