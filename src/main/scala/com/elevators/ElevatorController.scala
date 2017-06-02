@@ -1,7 +1,8 @@
 package com.elevators
 
+import akka.actor.SupervisorStrategy._
 import akka.pattern.ask
-import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.actor._
 import akka.util.Timeout
 
 import scala.concurrent.{ duration, ExecutionContext, Future }
@@ -9,18 +10,28 @@ import duration._
 
 class ElevatorController(noOfElevators: Int,
                          floors: Int,
+                         maxPassengers: Int,
                          notificationListener: ActorRef,
                          executionContext: ExecutionContext)
     extends Actor
     with ActorLogging {
-
   implicit val timeout: Timeout = Timeout(5 seconds)
   implicit val ec: ExecutionContext = executionContext
+
+  override val supervisorStrategy =
+    OneForOneStrategy(maxNrOfRetries = 3, withinTimeRange = 1 minute) {
+      case e @ (_: TooManyInElevatorException | _: ActorKilledException) =>
+        log.error("Too many people in elevator or elevator died ", e)
+        notificationListener ! Restarting
+        Restart
+      case _: Exception => Escalate
+    }
 
   val elevators: Seq[ActorRef] =
     (1 to noOfElevators) map (_ =>
                                 context.actorOf(
-                                  ElevatorActor.props(floors, self)
+                                  ElevatorActor
+                                    .props(floors, maxPassengers, self)
                                 ))
 
   override def receive: Receive = {
@@ -49,6 +60,10 @@ class ElevatorController(noOfElevators: Int,
 
     case Idle =>
       notificationListener ! Idle
+
+    case KillElevators =>
+      log.info("killing all elevators!!!")
+      elevators foreach (elevator => elevator ! Kill)
   }
 
   def getElevatorWorkLoad(elevator: ActorRef): Future[Int] =
@@ -61,12 +76,14 @@ class ElevatorController(noOfElevators: Int,
 object ElevatorController {
   def props(elevators: Int,
             floors: Int,
+            maxInElevator: Int,
             notificationListener: ActorRef,
             executionContext: ExecutionContext): Props =
     Props(
       classOf[ElevatorController],
       elevators,
       floors,
+      maxInElevator,
       notificationListener,
       executionContext
     )

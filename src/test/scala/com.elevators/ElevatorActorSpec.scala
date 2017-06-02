@@ -28,7 +28,7 @@ class ElevatorActorSpec
     "called" should {
       val listener = TestProbe("notification-listener")
       val elevator: ActorRef =
-        system.actorOf(ElevatorActor.props(7, listener.ref))
+        system.actorOf(ElevatorActor.props(7, 10, listener.ref))
       implicit val ec =
         ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 

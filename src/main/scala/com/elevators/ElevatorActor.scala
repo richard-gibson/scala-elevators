@@ -2,7 +2,9 @@ package com.elevators
 
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 
-class ElevatorActor(floors: Int, notificationListener: ActorRef)
+class ElevatorActor(floors: Int,
+                    notificationListener: ActorRef,
+                    maxInLift: Int)
     extends Actor
     with ActorLogging
     with ElevatorBehaviour {
@@ -30,6 +32,9 @@ class ElevatorActor(floors: Int, notificationListener: ActorRef)
           takingPassengersTo,
           passengersDelivered
         )
+
+      log.info(s"${takeTo.size} in elevator")
+      if (takeTo.size > maxInLift) throw TooManyInElevatorException()
 
       val nextFloor: Option[Int] = (takeTo.headOption map (_.goingToFloor))
         .orElse(collectFrom.headOption map (_._1))
@@ -84,6 +89,8 @@ class ElevatorActor(floors: Int, notificationListener: ActorRef)
 }
 
 object ElevatorActor {
-  def props(floors: Int, notificationListener: ActorRef): Props =
-    Props(classOf[ElevatorActor], floors, notificationListener)
+  def props(floors: Int,
+            maxPassengers: Int,
+            notificationListener: ActorRef): Props =
+    Props(classOf[ElevatorActor], floors, notificationListener, maxPassengers)
 }

@@ -30,7 +30,7 @@ class ElevatorControllerSpec
         ElevatorController.props(
           elevators = 1,
           floors = 7,
-//          maxInElevator = 3,
+          maxInElevator = 3,
           notificationListener = listener.ref,
           executionContext = ec
         )
